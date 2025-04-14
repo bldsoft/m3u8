@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -242,6 +243,17 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 	case MASTER:
 		return master, MASTER, nil
 	case MEDIA:
+		if segs := media.GetAllSegments(); len(segs) > 2 && segs[0] != nil {
+			last_id := getSegmentIdx(segs[0].URI)
+			for i := 1; i < len(segs); i++ {
+				cur := segs[i]
+				cur_id := getSegmentIdx(cur.URI)
+				if last_id+1 != cur_id {
+					fmt.Println(map[string]any{"cur_id": cur_id, "prev_id": last_id}, "Mismatched segment index PARSE")
+				}
+				last_id = cur_id
+			}
+		}
 		if media.Closed || media.MediaType == EVENT {
 			// VoD and Event's should show the entire playlist
 			media.SetWinSize(0)
@@ -819,6 +831,18 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 	case strings.HasPrefix(line, "#"):
 		// comments are ignored
 	}
+
+	if segs := p.GetAllSegments(); len(segs) > 2 && segs[0] != nil {
+		last_id := getSegmentIdx(segs[0].URI)
+		for i := 1; i < len(segs); i++ {
+			cur := segs[i]
+			cur_id := getSegmentIdx(cur.URI)
+			if last_id+1 != cur_id {
+				fmt.Println(map[string]any{"cur_id": cur_id, "prev_id": last_id}, "Mismatched segment index PARSE")
+			}
+			last_id = cur_id
+		}
+	}
 	return err
 }
 
@@ -844,4 +868,9 @@ func FullTimeParse(value string) (time.Time, error) {
 		}
 	}
 	return t, err
+}
+
+func getSegmentIdx(path string) int {
+	idx, _ := strconv.Atoi(strings.Split(strings.ReplaceAll(path, "-", "_")[:len(path)-len(filepath.Ext(path))], "_")[1])
+	return idx
 }

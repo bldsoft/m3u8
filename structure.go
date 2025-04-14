@@ -185,6 +185,10 @@ type VariantParams struct {
 	Alternatives     []*Alternative // EXT-X-MEDIA
 }
 
+func (v VariantParams) GetBandwidth() int64 {
+	return int64(v.Bandwidth)
+}
+
 // Alternative structure represents EXT-X-MEDIA tag in variants.
 type Alternative struct {
 	GroupId         string
