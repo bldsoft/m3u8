@@ -194,10 +194,10 @@ func (v VariantParams) GetBandwidth() int64 {
 	return int64(v.Bandwidth)
 }
 
-func (v VariantParams) GetResolution() int64 {
+func (v VariantParams) GetResolution() (int64, int64) {
 	hs, ws := 0, 0
 	fmt.Sscanf(v.Resolution, "%dx%d", &hs, &ws)
-	return int64(hs * ws)
+	return int64(hs), int64(ws)
 }
 
 // Alternative structure represents EXT-X-MEDIA tag in variants.
