@@ -242,10 +242,12 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 	case MASTER:
 		return master, MASTER, nil
 	case MEDIA:
+		winSize := min(media.count, media.capacity)
 		if media.Closed || media.MediaType == EVENT {
 			// VoD and Event's should show the entire playlist
-			media.SetWinSize(0)
+			winSize = 0
 		}
+		media.SetWinSize(winSize)
 		return media, MEDIA, nil
 	}
 	return nil, state.listType, errors.New("Can't detect playlist type")
