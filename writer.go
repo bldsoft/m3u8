@@ -553,6 +553,10 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		}
 		if seg.SCTE != nil {
 			switch seg.SCTE.Syntax {
+			case SCTE35_DATERANGE:
+				p.buf.WriteString("#EXT-X-DATERANGE:")
+				p.buf.WriteString(seg.SCTE.Cue)
+				p.buf.WriteRune('\n')
 			case SCTE35_67_2014:
 				p.buf.WriteString("#EXT-SCTE35:")
 				p.buf.WriteString("CUE=\"")

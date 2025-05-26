@@ -669,6 +669,11 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 				return fmt.Errorf("Byterange sub-range offset value parsing error: %s", err)
 			}
 		}
+	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-X-DATERANGE:"):
+		state.tagSCTE35 = true
+		state.scte = new(SCTE)
+		state.scte.Syntax = SCTE35_DATERANGE
+		state.scte.Cue = line[17:]
 	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-SCTE35:"):
 		state.tagSCTE35 = true
 		state.listType = MEDIA
