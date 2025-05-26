@@ -564,6 +564,63 @@ func TestMediaPlaylistWithOATCLSSCTE35Tag(t *testing.T) {
 	}
 }
 
+func TestMediaPlaylistWithDaterange(t *testing.T) {
+	f, err := os.Open("sample-playlists/media-playlist-with-daterange.m3u8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _, err := DecodeFrom(bufio.NewReader(f), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pp := p.(*MediaPlaylist)
+	expect := map[int]*MediaSegment{
+		0: {URI: "media1.ts"},
+		1: {URI: "media2.ts"},
+		2: {URI: "media3.ts", DateRange: `ID="147",START-DATE="2025-05-26T10:16:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC`},
+		3: {URI: "media4.ts"},
+		4: {URI: "media5.ts"},
+		5: {URI: "media6.ts", DateRange: `ID="148",START-DATE="2025-05-26T10:17:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC`},
+		6: {URI: "media7.ts"},
+	}
+	for i := 0; i < int(pp.Count()); i++ {
+		if pp.Segments[i].DateRange != expect[i].DateRange {
+			t.Errorf("Daterange segment %v (uri: %v)\ngot: %#v\nexp: %#v",
+				i, pp.Segments[i].URI, pp.Segments[i].DateRange, expect[i].DateRange,
+			)
+		}
+	}
+
+	raw := `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-MEDIA-SEQUENCE:38841
+#EXT-X-TARGETDURATION:7
+#EXT-X-DISCONTINUITY-SEQUENCE:11
+#EXTINF:6.000,
+media1.ts
+#EXTINF:6.000,
+media2.ts
+#EXT-X-DATERANGE:ID="147",START-DATE="2025-05-26T10:16:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC
+#EXTINF:6.000,
+media3.ts
+#EXTINF:6.000,
+media4.ts
+#EXTINF:6.000,
+media5.ts
+#EXT-X-DATERANGE:ID="148",START-DATE="2025-05-26T10:17:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC
+#EXTINF:6.000,
+media6.ts
+#EXTINF:6.000,
+media7.ts
+`
+
+	if raw != pp.Encode().String() {
+		t.Errorf("Encoded playlist does not match expected playlist")
+		t.Errorf("Expected:\n%s\nGot:\n%s", raw, pp.Encode().String())
+	}
+
+}
+
 func TestMediaPlaylistWithSeveralSCTE35Tags(t *testing.T) {
 	f, err := os.Open("sample-playlists/media-playlist-with-several_scte35.m3u8")
 	if err != nil {

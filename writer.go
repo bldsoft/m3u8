@@ -351,11 +351,17 @@ func (p *MediaPlaylist) Remove() (err error) {
 
 // Append general chunk to the tail of chunk slice for a media playlist.
 // This operation does reset playlist cache.
-func (p *MediaPlaylist) Append(uri string, duration float64, title string) error {
+func (p *MediaPlaylist) Append(uri string, duration float64, title string, state ...*decodingState) error {
 	seg := new(MediaSegment)
 	seg.URI = uri
 	seg.Duration = duration
 	seg.Title = title
+	if len(state) > 0 {
+		if state[0].daterange != "" {
+			seg.DateRange = state[0].daterange
+			state[0].daterange = ""
+		}
+	}
 	return p.AppendSegment(seg)
 }
 
@@ -553,10 +559,6 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		}
 		if seg.SCTE != nil {
 			switch seg.SCTE.Syntax {
-			case SCTE35_DATERANGE:
-				p.buf.WriteString("#EXT-X-DATERANGE:")
-				p.buf.WriteString(seg.SCTE.Cue)
-				p.buf.WriteRune('\n')
 			case SCTE35_67_2014:
 				p.buf.WriteString("#EXT-SCTE35:")
 				p.buf.WriteString("CUE=\"")
@@ -595,6 +597,11 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteRune('\n')
 				}
 			}
+		}
+		if seg.DateRange != "" {
+			p.buf.WriteString("#EXT-X-DATERANGE:")
+			p.buf.WriteString(seg.DateRange)
+			p.buf.WriteRune('\n')
 		}
 		// check for key change
 		if currentKeys != seg.Keys {

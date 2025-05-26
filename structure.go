@@ -67,7 +67,6 @@ const (
 	// SCTE35_67_2014 will be the default due to backwards compatibility reasons.
 	SCTE35_67_2014 SCTE35Syntax = iota // SCTE35_67_2014 defined in http://www.scte.org/documents/pdf/standards/SCTE%2067%202014.pdf
 	SCTE35_OATCLS                      // SCTE35_OATCLS is a non-standard but common format
-	SCTE35_DATERANGE
 )
 
 // SCTE35CueType defines the type of cue point, used by readers and writers to
@@ -216,6 +215,7 @@ type MediaSegment struct {
 	Discontinuity   bool      // EXT-X-DISCONTINUITY indicates an encoding discontinuity between the media segment that follows it and the one that preceded it (i.e. file format, number and type of tracks, encoding parameters, encoding sequence, timestamp sequence)
 	SCTE            *SCTE     // SCTE-35 used for Ad signaling in HLS
 	ProgramDateTime time.Time // EXT-X-PROGRAM-DATE-TIME tag associates the first sample of a media segment with an absolute date and/or time
+	DateRange       string
 	Custom          map[string]CustomTag
 }
 
@@ -327,5 +327,6 @@ type decodingState struct {
 	xkeys              *Keys
 	xmap               *Map
 	scte               *SCTE
+	daterange          string
 	custom             map[string]CustomTag
 }
