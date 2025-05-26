@@ -567,9 +567,9 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString(seg.SCTE.ID)
 					p.buf.WriteRune('"')
 				}
-				if seg.SCTE.Time != 0 {
+				if len(seg.SCTE.Time) != 0 {
 					p.buf.WriteString(",TIME=")
-					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteString(seg.SCTE.Time)
 				}
 				p.buf.WriteRune('\n')
 			case SCTE35_OATCLS:
@@ -579,14 +579,14 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString(seg.SCTE.Cue)
 					p.buf.WriteRune('\n')
 					p.buf.WriteString("#EXT-X-CUE-OUT:")
-					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteString(seg.SCTE.Time)
 					p.buf.WriteRune('\n')
 				case SCTE35Cue_Mid:
 					p.buf.WriteString("#EXT-X-CUE-OUT-CONT:")
 					p.buf.WriteString("ElapsedTime=")
 					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Elapsed, 'f', -1, 64))
 					p.buf.WriteString(",Duration=")
-					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteString(seg.SCTE.Time)
 					p.buf.WriteString(",SCTE35=")
 					p.buf.WriteString(seg.SCTE.Cue)
 					p.buf.WriteRune('\n')
@@ -784,7 +784,11 @@ func (p *MediaPlaylist) SetRange(limit, offset int64) error {
 //
 // Deprecated: Use SetSCTE35 instead.
 func (p *MediaPlaylist) SetSCTE(cue string, id string, time float64) error {
-	return p.SetSCTE35(&SCTE{Syntax: SCTE35_67_2014, Cue: cue, ID: id, Time: time})
+	var t string
+	if time > 0 {
+		t = strconv.FormatFloat(time, 'f', -1, 64)
+	}
+	return p.SetSCTE35(&SCTE{Syntax: SCTE35_67_2014, Cue: cue, ID: id, Time: t})
 }
 
 // SetSCTE35 sets the SCTE cue format for the current media segment

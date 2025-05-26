@@ -14,6 +14,7 @@ package m3u8
 import (
 	"bytes"
 	"io"
+	"strconv"
 	"time"
 )
 
@@ -224,8 +225,13 @@ type SCTE struct {
 	CueType SCTE35CueType // CueType defines whether the cue is a start, mid, end (if applicable)
 	Cue     string
 	ID      string
-	Time    float64
+	Time    string
 	Elapsed float64
+}
+
+func (s *SCTE) TimeAsFloat() float64 {
+	time, _ := strconv.ParseFloat(s.Time, 64)
+	return time
 }
 
 // Map structure represents specifies how to obtain the Media
