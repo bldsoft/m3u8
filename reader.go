@@ -193,7 +193,7 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 	wv := new(WV)
 
 	master = NewMasterPlaylist()
-	media, err = NewMediaPlaylist(8, 1024) // Winsize for VoD will become 0, capacity auto extends
+	media, err = NewMediaPlaylist(0, 1024) // Winsize for VoD will become 0, capacity auto extends
 	if err != nil {
 		return nil, 0, fmt.Errorf("Create media playlist failed: %s", err)
 	}
@@ -242,10 +242,12 @@ func decode(buf *bytes.Buffer, strict bool, customDecoders []CustomDecoder) (Pla
 	case MASTER:
 		return master, MASTER, nil
 	case MEDIA:
+		winSize := min(media.count, media.capacity)
 		if media.Closed || media.MediaType == EVENT {
 			// VoD and Event's should show the entire playlist
-			media.SetWinSize(0)
+			winSize = 0
 		}
+		media.SetWinSize(winSize)
 		return media, MEDIA, nil
 	}
 	return nil, state.listType, errors.New("Can't detect playlist type")
