@@ -1,11 +1,11 @@
 /*
- Playlist parsing tests.
+Playlist parsing tests.
 
- Copyright 2013-2019 The Project Developers.
- See the AUTHORS and LICENSE files at the top-level directory of this distribution
- and at https://github.com/grafov/m3u8/
+Copyright 2013-2019 The Project Developers.
+See the AUTHORS and LICENSE files at the top-level directory of this distribution
+and at https://github.com/grafov/m3u8/
 
- ॐ तारे तुत्तारे तुरे स्व
+ॐ तारे तुत्तारे तुरे स्व
 */
 package m3u8
 
@@ -551,8 +551,8 @@ func TestMediaPlaylistWithOATCLSSCTE35Tag(t *testing.T) {
 	pp := p.(*MediaPlaylist)
 
 	expect := map[int]*SCTE{
-		0: {Syntax: SCTE35_OATCLS, CueType: SCTE35Cue_Start, Cue: "/DAlAAAAAAAAAP/wFAUAAAABf+/+ANgNkv4AFJlwAAEBAQAA5xULLA==", Time: 15},
-		1: {Syntax: SCTE35_OATCLS, CueType: SCTE35Cue_Mid, Cue: "/DAlAAAAAAAAAP/wFAUAAAABf+/+ANgNkv4AFJlwAAEBAQAA5xULLA==", Time: 15, Elapsed: 8.844},
+		0: {Syntax: SCTE35_OATCLS, CueType: SCTE35Cue_Start, Cue: "/DAlAAAAAAAAAP/wFAUAAAABf+/+ANgNkv4AFJlwAAEBAQAA5xULLA==", Time: "15.000"},
+		1: {Syntax: SCTE35_OATCLS, CueType: SCTE35Cue_Mid, Cue: "/DAlAAAAAAAAAP/wFAUAAAABf+/+ANgNkv4AFJlwAAEBAQAA5xULLA==", Time: "15", Elapsed: 8.844},
 		2: {Syntax: SCTE35_OATCLS, CueType: SCTE35Cue_End},
 	}
 	for i := 0; i < int(pp.Count()); i++ {
@@ -561,6 +561,116 @@ func TestMediaPlaylistWithOATCLSSCTE35Tag(t *testing.T) {
 				i, pp.Segments[i].URI, pp.Segments[i].SCTE, expect[i],
 			)
 		}
+	}
+}
+
+func TestMediaPlaylistWithDaterange(t *testing.T) {
+	f, err := os.Open("sample-playlists/media-playlist-with-daterange.m3u8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _, err := DecodeFrom(bufio.NewReader(f), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pp := p.(*MediaPlaylist)
+	expect := map[int]*MediaSegment{
+		0: {URI: "media1.ts"},
+		1: {URI: "media2.ts"},
+		2: {URI: "media3.ts", DateRange: `ID="147",START-DATE="2025-05-26T10:16:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC`},
+		3: {URI: "media4.ts"},
+		4: {URI: "media5.ts"},
+		5: {URI: "media6.ts", DateRange: `ID="148",START-DATE="2025-05-26T10:17:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC`},
+		6: {URI: "media7.ts"},
+	}
+	for i := 0; i < int(pp.Count()); i++ {
+		if pp.Segments[i].DateRange != expect[i].DateRange {
+			t.Errorf("Daterange segment %v (uri: %v)\ngot: %#v\nexp: %#v",
+				i, pp.Segments[i].URI, pp.Segments[i].DateRange, expect[i].DateRange,
+			)
+		}
+	}
+
+	raw := `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-MEDIA-SEQUENCE:38841
+#EXT-X-TARGETDURATION:7
+#EXT-X-DISCONTINUITY-SEQUENCE:11
+#EXTINF:6.000,
+media1.ts
+#EXTINF:6.000,
+media2.ts
+#EXT-X-DATERANGE:ID="147",START-DATE="2025-05-26T10:16:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC
+#EXTINF:6.000,
+media3.ts
+#EXTINF:6.000,
+media4.ts
+#EXTINF:6.000,
+media5.ts
+#EXT-X-DATERANGE:ID="148",START-DATE="2025-05-26T10:17:21",PLANNED-DURATION=20.000,SCTE35-OUT=0xFC302500000000000000FFFFFF05000000937FEFFE17D16980FE001B77400000000000006271FFAC
+#EXTINF:6.000,
+media6.ts
+#EXTINF:6.000,
+media7.ts
+`
+
+	if raw != pp.Encode().String() {
+		t.Errorf("Encoded playlist does not match expected playlist")
+		t.Errorf("Expected:\n%s\nGot:\n%s", raw, pp.Encode().String())
+	}
+
+}
+
+func TestMediaPlaylistWithSeveralSCTE35Tags(t *testing.T) {
+	f, err := os.Open("sample-playlists/media-playlist-with-several_scte35.m3u8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _, err := DecodeFrom(bufio.NewReader(f), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pp := p.(*MediaPlaylist)
+	pp.SetWinSize(10)
+	fdata := `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-MEDIA-SEQUENCE:50189
+#EXT-X-TARGETDURATION:6
+#EXT-X-PROGRAM-DATE-TIME:2025-05-14T13:19:50.799Z
+#EXTINF:6.000,
+2025/05/14/13/19/50-06000.ts
+#EXTINF:6.000,
+2025/05/14/13/19/56-06000.ts
+#EXT-OATCLS-SCTE35:/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXT-X-CUE-OUT:DURATION=360.000
+#EXTINF:6.000,
+2025/05/14/13/20/02-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=6,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/08-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=12,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/14-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=18,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/20-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=24,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/26-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=30,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/32-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=36,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/38-06000.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=42,Duration=360.000,SCTE35=/DAgAAAAAAAAAP/wDwUAAAbHf//+Ae5igAAAAAAAADEsmCw=
+#EXTINF:6.000,
+2025/05/14/13/20/44-06000.ts
+`
+	raw := pp.Encode().String()
+	if raw != fdata {
+		t.Errorf("Encoded playlist does not match expected playlist")
+		t.Errorf("Expected:\n%s\nGot:\n%s", fdata, raw)
 	}
 }
 
@@ -862,21 +972,21 @@ func TestMediaPlaylistWithSCTE35Tag(t *testing.T) {
 		expectedSCTEIndex int
 		expectedSCTECue   string
 		expectedSCTEID    string
-		expectedSCTETime  float64
+		expectedSCTETime  string
 	}{
 		{
 			"sample-playlists/media-playlist-with-scte35.m3u8",
 			2,
 			"/DAIAAAAAAAAAAAQAAZ/I0VniQAQAgBDVUVJQAAAAH+cAAAAAA==",
 			"123",
-			123.12,
+			"123.12",
 		},
 		{
 			"sample-playlists/media-playlist-with-scte35-1.m3u8",
 			1,
 			"/DAIAAAAAAAAAAAQAAZ/I0VniQAQAgBDVUVJQAA",
 			"",
-			0,
+			"",
 		},
 	}
 	for _, c := range cases {

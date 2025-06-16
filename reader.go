@@ -495,7 +495,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 		}
 	case !strings.HasPrefix(line, "#"):
 		if state.tagInf {
-			err := p.Append(line, state.duration, state.title)
+			err := p.Append(line, state.duration, state.title, state)
 			if err == ErrPlaylistFull {
 				// Extend playlist by doubling size, reset internal state, try again.
 				// If the second Append fails, the if err block will handle it.
@@ -504,7 +504,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 				p.Segments = append(p.Segments, make([]*MediaSegment, p.Count())...)
 				p.capacity = uint(len(p.Segments))
 				p.tail = p.count
-				err = p.Append(line, state.duration, state.title)
+				err = p.Append(line, state.duration, state.title, state)
 			}
 			// Check err for first or subsequent Append()
 			if err != nil {
@@ -683,7 +683,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 			case "ID":
 				state.scte.ID = value
 			case "TIME":
-				state.scte.Time, _ = strconv.ParseFloat(value, 64)
+				state.scte.Time = value
 			}
 		}
 	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-OATCLS-SCTE35:"):
@@ -694,7 +694,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 		state.scte.Cue = line[19:]
 	case state.tagSCTE35 && state.scte.Syntax == SCTE35_OATCLS && strings.HasPrefix(line, "#EXT-X-CUE-OUT:"):
 		// EXT-OATCLS-SCTE35 contains the SCTE35 tag, EXT-X-CUE-OUT contains duration
-		state.scte.Time, _ = strconv.ParseFloat(line[15:], 64)
+		state.scte.Time = line[15:]
 		state.scte.CueType = SCTE35Cue_Start
 	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-X-CUE-OUT-CONT:"):
 		state.tagSCTE35 = true
@@ -706,7 +706,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 			case "SCTE35":
 				state.scte.Cue = value
 			case "Duration":
-				state.scte.Time, _ = strconv.ParseFloat(value, 64)
+				state.scte.Time = value
 			case "ElapsedTime":
 				state.scte.Elapsed, _ = strconv.ParseFloat(value, 64)
 			}
@@ -818,6 +818,8 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 		if err == nil {
 			state.tagWV = true
 		}
+	case strings.HasPrefix(line, "#EXT-X-DATERANGE:"):
+		state.daterange = line[17:]
 	case strings.HasPrefix(line, "#"):
 		// comments are ignored
 	}

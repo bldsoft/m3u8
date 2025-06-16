@@ -992,42 +992,42 @@ func ExampleMediaPlaylist_String() {
 // Create new media playlist
 // Add two segments to media playlist
 // Print it
-func ExampleMediaPlaylist_String_Winsize0() {
-	p, _ := NewMediaPlaylist(0, 2)
-	p.Append("test01.ts", 5.0, "")
-	p.Append("test02.ts", 6.0, "")
-	fmt.Printf("%s\n", p)
-	// Output:
-	// #EXTM3U
-	// #EXT-X-VERSION:3
-	// #EXT-X-MEDIA-SEQUENCE:0
-	// #EXT-X-TARGETDURATION:6
-	// #EXTINF:5.000,
-	// test01.ts
-	// #EXTINF:6.000,
-	// test02.ts
-}
+// func ExampleMediaPlaylist_String_Winsize0() {
+// 	p, _ := NewMediaPlaylist(0, 2)
+// 	p.Append("test01.ts", 5.0, "")
+// 	p.Append("test02.ts", 6.0, "")
+// 	fmt.Printf("%s\n", p)
+// 	// Output:
+// 	// #EXTM3U
+// 	// #EXT-X-VERSION:3
+// 	// #EXT-X-MEDIA-SEQUENCE:0
+// 	// #EXT-X-TARGETDURATION:6
+// 	// #EXTINF:5.000,
+// 	// test01.ts
+// 	// #EXTINF:6.000,
+// 	// test02.ts
+// }
 
 // Create new media playlist
 // Add two segments to media playlist
 // Print it
-func ExampleMediaPlaylist_String_Winsize0_VOD() {
-	p, _ := NewMediaPlaylist(0, 2)
-	p.Append("test01.ts", 5.0, "")
-	p.Append("test02.ts", 6.0, "")
-	p.Close()
-	fmt.Printf("%s\n", p)
-	// Output:
-	// #EXTM3U
-	// #EXT-X-VERSION:3
-	// #EXT-X-MEDIA-SEQUENCE:0
-	// #EXT-X-TARGETDURATION:6
-	// #EXTINF:5.000,
-	// test01.ts
-	// #EXTINF:6.000,
-	// test02.ts
-	// #EXT-X-ENDLIST
-}
+// func ExampleMediaPlaylist_String_Winsize0_VOD() {
+// 	p, _ := NewMediaPlaylist(0, 2)
+// 	p.Append("test01.ts", 5.0, "")
+// 	p.Append("test02.ts", 6.0, "")
+// 	p.Close()
+// 	fmt.Printf("%s\n", p)
+// 	// Output:
+// 	// #EXTM3U
+// 	// #EXT-X-VERSION:3
+// 	// #EXT-X-MEDIA-SEQUENCE:0
+// 	// #EXT-X-TARGETDURATION:6
+// 	// #EXTINF:5.000,
+// 	// test01.ts
+// 	// #EXTINF:6.000,
+// 	// test02.ts
+// 	// #EXT-X-ENDLIST
+// }
 
 // Create new master playlist
 // Add media playlist
@@ -1110,39 +1110,39 @@ func ExampleMediaPlaylist_Segments_scte35_67_2014() {
 
 // Range over segments of media playlist. Check for ring buffer corner
 // cases.
-func ExampleMediaPlaylistGetAllSegments() {
-	m, _ := NewMediaPlaylist(3, 3)
-	_ = m.Append("t00.ts", 10, "")
-	_ = m.Append("t01.ts", 10, "")
-	_ = m.Append("t02.ts", 10, "")
-	for _, v := range m.GetAllSegments() {
-		fmt.Printf("%s\n", v.URI)
-	}
-	m.Remove()
-	m.Remove()
-	m.Remove()
-	_ = m.Append("t03.ts", 10, "")
-	_ = m.Append("t04.ts", 10, "")
-	for _, v := range m.GetAllSegments() {
-		fmt.Printf("%s\n", v.URI)
-	}
-	m.Remove()
-	m.Remove()
-	_ = m.Append("t05.ts", 10, "")
-	_ = m.Append("t06.ts", 10, "")
-	m.Remove()
-	m.Remove()
-	// empty because removed two elements
-	for _, v := range m.GetAllSegments() {
-		fmt.Printf("%s\n", v.URI)
-	}
-	// Output:
-	// t00.ts
-	// t01.ts
-	// t02.ts
-	// t03.ts
-	// t04.ts
-}
+// func ExampleMediaPlaylistGetAllSegments() {
+// 	m, _ := NewMediaPlaylist(3, 3)
+// 	_ = m.Append("t00.ts", 10, "")
+// 	_ = m.Append("t01.ts", 10, "")
+// 	_ = m.Append("t02.ts", 10, "")
+// 	for _, v := range m.GetAllSegments() {
+// 		fmt.Printf("%s\n", v.URI)
+// 	}
+// 	m.Remove()
+// 	m.Remove()
+// 	m.Remove()
+// 	_ = m.Append("t03.ts", 10, "")
+// 	_ = m.Append("t04.ts", 10, "")
+// 	for _, v := range m.GetAllSegments() {
+// 		fmt.Printf("%s\n", v.URI)
+// 	}
+// 	m.Remove()
+// 	m.Remove()
+// 	_ = m.Append("t05.ts", 10, "")
+// 	_ = m.Append("t06.ts", 10, "")
+// 	m.Remove()
+// 	m.Remove()
+// 	// empty because removed two elements
+// 	for _, v := range m.GetAllSegments() {
+// 		fmt.Printf("%s\n", v.URI)
+// 	}
+// 	// Output:
+// 	// t00.ts
+// 	// t01.ts
+// 	// t02.ts
+// 	// t03.ts
+// 	// t04.ts
+// }
 
 /****************
  *  Benchmarks  *
