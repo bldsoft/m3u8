@@ -13,6 +13,7 @@ package m3u8
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -166,6 +167,10 @@ type Variant struct {
 	VariantParams
 }
 
+func (v Variant) GetURI() string {
+	return v.URI
+}
+
 // VariantParams structure represents additional parameters for a
 // variant used in EXT-X-STREAM-INF and EXT-X-I-FRAME-STREAM-INF
 type VariantParams struct {
@@ -184,6 +189,16 @@ type VariantParams struct {
 	HDCPLevel        string
 	FrameRate        float64        // EXT-X-STREAM-INF
 	Alternatives     []*Alternative // EXT-X-MEDIA
+}
+
+func (v VariantParams) GetBandwidth() int64 {
+	return int64(v.Bandwidth)
+}
+
+func (v VariantParams) GetResolution() (int64, int64) {
+	hs, ws := 0, 0
+	fmt.Sscanf(v.Resolution, "%dx%d", &hs, &ws)
+	return int64(hs), int64(ws)
 }
 
 // Alternative structure represents EXT-X-MEDIA tag in variants.

@@ -823,6 +823,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 	case strings.HasPrefix(line, "#"):
 		// comments are ignored
 	}
+
 	return err
 }
 
