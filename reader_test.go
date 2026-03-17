@@ -674,6 +674,157 @@ func TestMediaPlaylistWithSeveralSCTE35Tags(t *testing.T) {
 	}
 }
 
+func TestDecodeMediaPlaylistWithElementalAdMarkers(t *testing.T) {
+	raw := `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXTINF:1.925,
+seg0.ts
+#EXT-X-CUE-OUT:30.000
+#EXTINF:1.925,
+seg1.ts
+#EXT-X-CUE-OUT-CONT:3.179/30.000
+#EXTINF:1.925,
+seg2.ts
+#EXT-X-CUE-IN
+#EXTINF:1.925,
+seg3.ts
+#EXT-X-ENDLIST
+`
+
+	p, _, err := DecodeFrom(bytes.NewBufferString(raw), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pp := p.(*MediaPlaylist)
+	if pp.Count() != 4 {
+		t.Fatalf("expected 4 segments, got %d", pp.Count())
+	}
+
+	start := pp.Segments[1].SCTE
+	if start == nil {
+		t.Fatal("expected cue-out marker on second segment")
+	}
+	if start.Syntax != SCTE35_OATCLS || start.CueType != SCTE35Cue_Start || start.Time != "30.000" {
+		t.Fatalf("unexpected cue-out marker: %+v", start)
+	}
+
+	mid := pp.Segments[2].SCTE
+	if mid == nil {
+		t.Fatal("expected cue-out-cont marker on third segment")
+	}
+	if mid.Syntax != SCTE35_OATCLS || mid.CueType != SCTE35Cue_Mid || mid.Time != "30.000" || mid.Elapsed != 3.179 {
+		t.Fatalf("unexpected cue-out-cont marker: %+v", mid)
+	}
+
+	end := pp.Segments[3].SCTE
+	if end == nil {
+		t.Fatal("expected cue-in marker on fourth segment")
+	}
+	if end.Syntax != SCTE35_OATCLS || end.CueType != SCTE35Cue_End {
+		t.Fatalf("unexpected cue-in marker: %+v", end)
+	}
+
+	encoded := pp.Encode().Bytes()
+	if !bytes.Contains(encoded, []byte("#EXT-X-CUE-OUT:30.000\n")) {
+		t.Fatalf("encoded playlist is missing cue-out marker:\n%s", string(encoded))
+	}
+	if !bytes.Contains(encoded, []byte("#EXT-X-CUE-OUT-CONT:3.179/30.000\n")) {
+		t.Fatalf("encoded playlist is missing elemental cue-out-cont marker:\n%s", string(encoded))
+	}
+	if bytes.Contains(encoded, []byte("#EXT-OATCLS-SCTE35:\n")) {
+		t.Fatalf("encoded playlist contains empty OATCLS marker:\n%s", string(encoded))
+	}
+	if bytes.Contains(encoded, []byte(",SCTE35=\n")) {
+		t.Fatalf("encoded playlist contains empty SCTE35 payload:\n%s", string(encoded))
+	}
+	if bytes.Contains(encoded, []byte("#EXT-X-CUE-OUT-CONT:ElapsedTime=3.179,Duration=30.000\n")) {
+		t.Fatalf("encoded playlist should preserve elemental cue-out-cont style:\n%s", string(encoded))
+	}
+}
+
+func TestDecodeMediaPlaylistWithSCTE35EnhancedAdMarkers(t *testing.T) {
+	raw := `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:6
+#EXTINF:5.939,
+seg0.ts
+#EXT-OATCLS-SCTE35:/DA0AAAAAAAAAAAABQb+ADAQ6QAeAhxDVUVJQAAAO3/PAAEUrEoICAAAAAAg+2UBNAAANvrtoQ==
+#EXT-X-ASSET:CAID=0x0000000020FB6501
+#EXT-X-CUE-OUT:201.467
+#EXTINF:5.939,
+seg1.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=5.939,Duration=201.467,SCTE35=/DA0AAAAAAAAAAAABQb+ADAQ6QAeAhxDVUVJQAAAO3/PAAEUrEoICAAAAAAg+2UBNAAANvrtoQ==
+#EXTINF:5.939,
+seg2.ts
+#EXT-X-CUE-IN
+#EXTINF:5.939,
+seg3.ts
+#EXT-X-ENDLIST
+`
+
+	p, _, err := DecodeFrom(bytes.NewBufferString(raw), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pp := p.(*MediaPlaylist)
+	if pp.Count() != 4 {
+		t.Fatalf("expected 4 segments, got %d", pp.Count())
+	}
+
+	start := pp.Segments[1].SCTE
+	if start == nil {
+		t.Fatal("expected enhanced cue-out marker on second segment")
+	}
+	if start.Syntax != SCTE35_OATCLS || start.CueType != SCTE35Cue_Start {
+		t.Fatalf("unexpected enhanced cue-out marker type: %+v", start)
+	}
+	if start.Time != "201.467" {
+		t.Fatalf("unexpected enhanced cue-out duration: %+v", start)
+	}
+	if start.Cue != "/DA0AAAAAAAAAAAABQb+ADAQ6QAeAhxDVUVJQAAAO3/PAAEUrEoICAAAAAAg+2UBNAAANvrtoQ==" {
+		t.Fatalf("unexpected enhanced cue-out payload: %+v", start)
+	}
+
+	mid := pp.Segments[2].SCTE
+	if mid == nil {
+		t.Fatal("expected enhanced cue-out-cont marker on third segment")
+	}
+	if mid.Syntax != SCTE35_OATCLS || mid.CueType != SCTE35Cue_Mid {
+		t.Fatalf("unexpected enhanced cue-out-cont marker type: %+v", mid)
+	}
+	if mid.Time != "201.467" || mid.Elapsed != 5.939 {
+		t.Fatalf("unexpected enhanced cue-out-cont timing: %+v", mid)
+	}
+	if mid.Cue != "/DA0AAAAAAAAAAAABQb+ADAQ6QAeAhxDVUVJQAAAO3/PAAEUrEoICAAAAAAg+2UBNAAANvrtoQ==" {
+		t.Fatalf("unexpected enhanced cue-out-cont payload: %+v", mid)
+	}
+
+	end := pp.Segments[3].SCTE
+	if end == nil {
+		t.Fatal("expected enhanced cue-in marker on fourth segment")
+	}
+	if end.Syntax != SCTE35_OATCLS || end.CueType != SCTE35Cue_End {
+		t.Fatalf("unexpected enhanced cue-in marker: %+v", end)
+	}
+
+	encoded := pp.Encode().Bytes()
+	if !bytes.Contains(encoded, []byte("#EXT-OATCLS-SCTE35:/DA0AAAAAAAAAAAABQb+ADAQ6QAeAhxDVUVJQAAAO3/PAAEUrEoICAAAAAAg+2UBNAAANvrtoQ==\n")) {
+		t.Fatalf("encoded playlist is missing enhanced OATCLS marker:\n%s", string(encoded))
+	}
+	if !bytes.Contains(encoded, []byte("#EXT-X-CUE-OUT:201.467\n")) {
+		t.Fatalf("encoded playlist is missing enhanced cue-out marker:\n%s", string(encoded))
+	}
+	if !bytes.Contains(encoded, []byte("#EXT-X-CUE-OUT-CONT:ElapsedTime=5.939,Duration=201.467,SCTE35=/DA0AAAAAAAAAAAABQb+ADAQ6QAeAhxDVUVJQAAAO3/PAAEUrEoICAAAAAAg+2UBNAAANvrtoQ==\n")) {
+		t.Fatalf("encoded playlist is missing enhanced cue-out-cont marker:\n%s", string(encoded))
+	}
+	if !bytes.Contains(encoded, []byte("#EXT-X-CUE-IN\n")) {
+		t.Fatalf("encoded playlist is missing enhanced cue-in marker:\n%s", string(encoded))
+	}
+}
+
 func TestDecodeMediaPlaylistWithDiscontinuitySeq(t *testing.T) {
 	f, err := os.Open("sample-playlists/media-playlist-with-discontinuity-seq.m3u8")
 	if err != nil {

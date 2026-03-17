@@ -695,22 +695,45 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 		state.scte.Cue = line[19:]
 	case state.tagSCTE35 && state.scte.Syntax == SCTE35_OATCLS && strings.HasPrefix(line, "#EXT-X-CUE-OUT:"):
 		// EXT-OATCLS-SCTE35 contains the SCTE35 tag, EXT-X-CUE-OUT contains duration
-		state.scte.Time = line[15:]
+		state.scte.Time = strings.TrimSpace(line[15:])
 		state.scte.CueType = SCTE35Cue_Start
+	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-X-CUE-OUT:"):
+		state.tagSCTE35 = true
+		state.scte = new(SCTE)
+		state.scte.Syntax = SCTE35_OATCLS
+		state.scte.CueType = SCTE35Cue_Start
+		state.scte.Time = strings.TrimSpace(line[15:])
 	case !state.tagSCTE35 && strings.HasPrefix(line, "#EXT-X-CUE-OUT-CONT:"):
 		state.tagSCTE35 = true
 		state.scte = new(SCTE)
 		state.scte.Syntax = SCTE35_OATCLS
 		state.scte.CueType = SCTE35Cue_Mid
-		for attribute, value := range decodeParamsLine(line[20:]) {
-			switch attribute {
-			case "SCTE35":
-				state.scte.Cue = value
-			case "Duration":
-				state.scte.Time = value
-			case "ElapsedTime":
-				state.scte.Elapsed, _ = strconv.ParseFloat(value, 64)
+		payload := strings.TrimSpace(line[20:])
+		params := decodeParamsLine(payload)
+		if len(params) > 0 {
+			for attribute, value := range params {
+				switch attribute {
+				case "SCTE35":
+					state.scte.Cue = value
+				case "Duration":
+					state.scte.Time = value
+				case "ElapsedTime":
+					state.scte.Elapsed, _ = strconv.ParseFloat(value, 64)
+				}
 			}
+		} else {
+			parts := strings.SplitN(payload, "/", 2)
+			if len(parts) != 2 {
+				if strict {
+					return fmt.Errorf("could not parse: %q", line)
+				}
+				break
+			}
+			state.scte.Elapsed, err = strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+			if strict && err != nil {
+				return fmt.Errorf("ElapsedTime parsing error: %s", err)
+			}
+			state.scte.Time = strings.TrimSpace(parts[1])
 		}
 	case !state.tagSCTE35 && line == "#EXT-X-CUE-IN":
 		state.tagSCTE35 = true
