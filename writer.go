@@ -370,11 +370,37 @@ func (p *MediaPlaylist) Append(uri string, duration float64, title string, state
 	return p.AppendSegment(seg)
 }
 
+// grow doubles the ring of an accumulating playlist and packs segments in
+// playback order, starting at head. A full ring with head != 0 is not a
+// linear prefix, so the copy walks count steps from head.
+func (p *MediaPlaylist) grow() {
+	newCap := p.capacity * 2
+	if newCap == 0 {
+		newCap = 1024
+	}
+	next := make([]*MediaSegment, newCap)
+	if p.capacity > 0 {
+		for i := uint(0); i < p.count; i++ {
+			next[i] = p.Segments[(p.head+i)%p.capacity]
+		}
+	}
+	p.Segments = next
+	p.capacity = newCap
+	p.head = 0
+	p.tail = p.count
+	p.buf.Reset()
+}
+
 // AppendSegment appends a MediaSegment to the tail of chunk slice for
 // a media playlist.  This operation does reset playlist cache.
+// An accumulating playlist (winsize == 0) grows when the ring is full.
+// A sliding playlist still returns ErrPlaylistFull.
 func (p *MediaPlaylist) AppendSegment(seg *MediaSegment) error {
 	if p.head == p.tail && p.count > 0 {
-		return ErrPlaylistFull
+		if p.winsize > 0 {
+			return ErrPlaylistFull
+		}
+		p.grow()
 	}
 	seg.SeqId = p.SeqNo
 	if p.count > 0 {

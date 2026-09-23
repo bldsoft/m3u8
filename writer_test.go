@@ -105,6 +105,73 @@ func TestAppendSegmentToMediaPlaylist(t *testing.T) {
 	}
 }
 
+func TestAppendSegmentGrowsAccumulatingPlaylist(t *testing.T) {
+	p, err := NewMediaPlaylist(0, 2)
+	if err != nil {
+		t.Fatalf("Create media playlist failed: %s", err)
+	}
+	uris := []string{"seg-0.ts", "seg-1.ts", "seg-2.ts"}
+	for _, uri := range uris {
+		if err := p.AppendSegment(&MediaSegment{URI: uri, Duration: 4}); err != nil {
+			t.Fatalf("append %s: %s", uri, err)
+		}
+	}
+	if p.Count() != 3 {
+		t.Fatalf("expected count 3, got %d", p.Count())
+	}
+	segs := p.GetAllSegments()
+	if len(segs) != 3 {
+		t.Fatalf("expected 3 segments, got %d", len(segs))
+	}
+	for i, uri := range uris {
+		if segs[i].URI != uri {
+			t.Errorf("segment %d URI: expected %s, got %s", i, uri, segs[i].URI)
+		}
+		if segs[i].SeqId != uint64(i) {
+			t.Errorf("segment %d SeqId: expected %d, got %d", i, i, segs[i].SeqId)
+		}
+	}
+	encoded := p.Encode().String()
+	for _, uri := range uris {
+		if !strings.Contains(encoded, uri) {
+			t.Errorf("encoded playlist missing %s:\n%s", uri, encoded)
+		}
+	}
+}
+
+func TestAppendSegmentGrowsAfterRemove(t *testing.T) {
+	p, err := NewMediaPlaylist(0, 2)
+	if err != nil {
+		t.Fatalf("Create media playlist failed: %s", err)
+	}
+	for _, uri := range []string{"a.ts", "b.ts"} {
+		if err := p.AppendSegment(&MediaSegment{URI: uri, Duration: 4}); err != nil {
+			t.Fatalf("append %s: %s", uri, err)
+		}
+	}
+	if err := p.Remove(); err != nil {
+		t.Fatalf("remove: %s", err)
+	}
+	for _, uri := range []string{"c.ts", "d.ts"} {
+		if err := p.AppendSegment(&MediaSegment{URI: uri, Duration: 4}); err != nil {
+			t.Fatalf("append %s: %s", uri, err)
+		}
+	}
+	want := []string{"b.ts", "c.ts", "d.ts"}
+	segs := p.GetAllSegments()
+	if len(segs) != len(want) {
+		t.Fatalf("expected %d segments, got %d", len(want), len(segs))
+	}
+	for i, uri := range want {
+		if segs[i].URI != uri {
+			t.Errorf("segment %d URI: expected %s, got %s", i, uri, segs[i].URI)
+		}
+	}
+	if segs[0].SeqId != 1 || segs[1].SeqId != 2 || segs[2].SeqId != 3 {
+		t.Errorf("expected SeqId 1/2/3, got %d/%d/%d", segs[0].SeqId, segs[1].SeqId, segs[2].SeqId)
+	}
+}
+
 // Create new media playlist
 // Add three segments to media playlist
 // Set discontinuity tag for the 2nd segment.
