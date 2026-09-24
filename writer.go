@@ -13,6 +13,7 @@ package m3u8
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
@@ -374,15 +375,10 @@ func (p *MediaPlaylist) Append(uri string, duration float64, title string, state
 // playback order, starting at head. A full ring with head != 0 is not a
 // linear prefix, so the copy walks count steps from head.
 func (p *MediaPlaylist) grow() {
-	newCap := p.capacity * 2
-	if newCap == 0 {
-		newCap = 1024
-	}
+	newCap := cmp.Or(p.capacity*2, 1024)
 	next := make([]*MediaSegment, newCap)
-	if p.capacity > 0 {
-		for i := uint(0); i < p.count; i++ {
-			next[i] = p.Segments[(p.head+i)%p.capacity]
-		}
+	for i := range p.count {
+		next[i] = p.Segments[(p.head+i)%p.capacity]
 	}
 	p.Segments = next
 	p.capacity = newCap
